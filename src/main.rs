@@ -6,8 +6,10 @@ use image::{
 };
 use std::{fs::File, io::BufReader};
 
+#[derive(Debug)]
 enum ImageDataErrors {
     DifferentImageFormats,
+    BufferTooSmall,
 }
 
 struct FloatingImage {
@@ -29,8 +31,43 @@ fn main() -> Result<(), ImageDataErrors> {
     }
 
     let (image_1, image_2) = standardise_size(image_1, image_2);
+    let mut output = FloatingImage::new(image_1.width(), image_1.height(), args.output);
+
     let combined_data = combine_images(image_1, image_2);
+
+    output.set_data(combined_data)?;
+
+    image::save_buffer_with_format(
+        output.name,
+        &output.data,
+        output.width,
+        output.height,
+        image::ColorType::Rgba8,
+        image_format_1,
+    )
+    .unwrap();
     Ok(())
+}
+
+impl FloatingImage {
+    fn new(width: u32, height: u32, name: String) -> Self {
+        let buffer_capacity = 3_655_744;
+        let buffer: Vec<u8> = Vec::with_capacity(buffer_capacity);
+        FloatingImage {
+            width,
+            height,
+            data: buffer,
+            name,
+        }
+    }
+
+    fn set_data(&mut self, data: Vec<u8>) -> Result<(), ImageDataErrors> {
+        if data.len() > self.data.capacity() {
+            return Err(ImageDataErrors::BufferTooSmall);
+        }
+        self.data = data;
+        Ok(())
+    }
 }
 
 fn find_image_from_path(path: String) -> (DynamicImage, ImageFormat) {
@@ -55,19 +92,6 @@ fn standardise_size(image_1: DynamicImage, image_2: DynamicImage) -> (DynamicIma
         (image_1.resize_exact(width, height, Triangle), image_2)
     } else {
         (image_1, image_2.resize_exact(width, height, Triangle))
-    }
-}
-
-impl FloatingImage {
-    fn new(width: u32, height: u32, name: String) -> Self {
-        let buffer_capacity = 3_655_744;
-        let buffer: Vec<u8> = Vec::with_capacity(buffer_capacity);
-        FloatingImage {
-            width,
-            height,
-            data: buffer,
-            name,
-        }
     }
 }
 
@@ -100,9 +124,10 @@ fn set_rgba(vec: &Vec<u8>, start: usize, end: usize) -> Vec<u8> {
 
     for i in start..=end {
         let val = match vec.get(i) {
-            Some(val) => *val,
+            Some(d) => *d,
             None => panic!("Index out of bounds"),
         };
+        rgba.push(val)
     }
 
     rgba
