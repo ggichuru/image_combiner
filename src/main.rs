@@ -1,10 +1,10 @@
 mod args;
 
 use args::Args;
+
 use image::{
     imageops::FilterType::Triangle, io::Reader, DynamicImage, GenericImageView, ImageFormat,
 };
-use std::{fs::File, io::BufReader};
 
 #[derive(Debug)]
 enum ImageDataErrors {
@@ -71,9 +71,9 @@ impl FloatingImage {
 }
 
 fn find_image_from_path(path: String) -> (DynamicImage, ImageFormat) {
-    let image_reader: Reader<BufReader<File>> = Reader::open(path).unwrap();
-    let image_format: ImageFormat = image_reader.format().unwrap();
-    let image: DynamicImage = image_reader.decode().unwrap();
+    let image_reader = Reader::open(path).unwrap();
+    let image_format = image_reader.format().unwrap();
+    let image = image_reader.decode().unwrap();
     (image, image_format)
 }
 
@@ -86,7 +86,7 @@ fn get_smallest_dimensions(dim_1: (u32, u32), dim_2: (u32, u32)) -> (u32, u32) {
 
 fn standardise_size(image_1: DynamicImage, image_2: DynamicImage) -> (DynamicImage, DynamicImage) {
     let (width, height) = get_smallest_dimensions(image_1.dimensions(), image_2.dimensions());
-    println!("witdth: {}, height: {}", width, height);
+    println!("width: {}, height: {}\n", width, height);
 
     if image_2.dimensions() == (width, height) {
         (image_1.resize_exact(width, height, Triangle), image_2)
